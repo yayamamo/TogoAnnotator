@@ -2,11 +2,9 @@
 
 use warnings;
 use strict;
-use String::LCSS_XS qw(lcss lcss_all);
+use String::LCSS_XS qw/lcss/;
 use Fatal qw/open/;
 use PerlIO::gzip;
-
-my %stops = map {$_ => 1} qw/uncharacterized hypothetical expressed expressed/;
 
 open(my $fh, "<:gzip", "/home/togoannot/plant-tm/aggregated_20120213.txt.gz");
 my $lastcluster = '';
