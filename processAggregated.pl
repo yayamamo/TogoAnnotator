@@ -9,7 +9,7 @@ use PerlIO::gzip;
 open(my $fh, "<:gzip", "/home/togoannot/plant-tm/aggregated_20120213.txt.gz");
 my $lastcluster = '';
 my @clstmembers;
-my (%fgprnt, %nfgprnt);
+my (%fgprnt, %n2fgprnt, %n3fgprnt);
 
 while(<$fh>){
     chomp;
@@ -33,9 +33,11 @@ while(<$fh>){
 			 && !/(?i-xsm:(?:un(?:(?:characteriz|nam)ed protei|know(?:n protei)?)|(?:hypothetical|expressed|putative) protei)n)/} @entries;
     for ( @entries ){
 	my $fg = fingerprint($_);
-	my $nfg = ngramFingerprint($_);
+	my $n2fg = ngramFingerprint($_, 2);
+	my $n3fg = ngramFingerprint($_, 3);
 	$fgprnt{$fg}++;
-	$nfgprnt{$nfg}++;
+	$n2fgprnt{$n2fg}++;
+	$n3fgprnt{$n3fg}++;
 	print join("\t", ($vals[0], '1', $_, $fg)), "\n";
     }
     push @clstmembers, map {s/-/ /g;s/^/^/;s/  +/ /g;$_} @entries;
@@ -59,20 +61,25 @@ sub findLCSS {
 	}
     }
     my (%fphstgrm, %fpmap);
-    my (%nfphstgrm, %nfpmap);
+    my (%n2fphstgrm, %n2fpmap);
+    my (%n3fphstgrm, %n3fpmap);
     my @lcsm = sort {$lngst{$b}<=>$lngst{$a}} keys %lngst;
     # my @o = map {s/^\^//;$_} grep {m/^\^./ && length($_) > 5 && !m/^\^prote[a-z]*$/i && !m/^\^binding$/i} @lcsm;
     my @o = map {s/^\^//;$_} grep {m/^\^./ && length($_) > 5} @lcsm;
     if(@o){
 	for ( @o ){
 	    my $fg = fingerprint($_);
-	    my $nfg = ngramFingerprint($_);
+	    my $n2fg = ngramFingerprint($_, 2);
+	    my $n3fg = ngramFingerprint($_, 3);
 	    push @{ $fpmap{$fg} }, $_;
-	    push @{ $nfpmap{$nfg} }, $_;
+	    push @{ $n2fpmap{$n2fg} }, $_;
+	    push @{ $n3fpmap{$n3fg} }, $_;
 	    $fphstgrm{$fg} += $fgprnt{$fg} if $fgprnt{$fg};
-	    $nfphstgrm{$nfg} += $nfgprnt{$nfg} if $nfgprnt{$nfg};
+	    $n2fphstgrm{$n2fg} += $n2fgprnt{$n2fg} if $n2fgprnt{$n2fg};
+	    $n3fphstgrm{$n3fg} += $n3fgprnt{$n3fg} if $n3fgprnt{$n3fg};
 	    print join("\t", ($eid, '2f', $_, $fg)), "\n";
-	    print join("\t", ($eid, '2nf', $_, $nfg)), "\n";
+	    print join("\t", ($eid, '2n2f', $_, $n2fg)), "\n";
+	    print join("\t", ($eid, '2n3f', $_, $n3fg)), "\n";
 	}
     }else{
 	print join("\t", ($eid, '2', '__N_A__')), "\n";
@@ -84,14 +91,21 @@ sub findLCSS {
 	$c++;
     }
     $c = 0;
-    for (sort {$nfphstgrm{$b}<=>$nfphstgrm{$a}} keys %nfphstgrm){
-	last if ($nfphstgrm{$_} < 3 && $c > 0);
-	print join("\t", ('NFP', join(":", @{ $nfpmap{$_} }), $nfphstgrm{$_}, $nfgprnt{$_}, $_)), "\n";
+    for (sort {$n2fphstgrm{$b}<=>$n2fphstgrm{$a}} keys %n2fphstgrm){
+	last if ($n2fphstgrm{$_} < 3 && $c > 0);
+	print join("\t", ('N2FP', join(":", @{ $n2fpmap{$_} }), $n2fphstgrm{$_}, $n2fgprnt{$_}, $_)), "\n";
+	$c++;
+    }
+    $c = 0;
+    for (sort {$n3fphstgrm{$b}<=>$n3fphstgrm{$a}} keys %n3fphstgrm){
+	last if ($n3fphstgrm{$_} < 3 && $c > 0);
+	print join("\t", ('N3FP', join(":", @{ $n3fpmap{$_} }), $n3fphstgrm{$_}, $n3fgprnt{$_}, $_)), "\n";
 	$c++;
     }
     @clstmembers = ();
     %fgprnt = ();
-    %nfgprnt = ();
+    %n2fgprnt = ();
+    %n3fgprnt = ();
 }
 
 sub parseGI_UPT {
